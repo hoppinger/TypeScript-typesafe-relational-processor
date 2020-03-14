@@ -13,5 +13,8 @@
   "devDependencies": {
     "@types/node": "^8.0.14",
     "typescript": "^3.2.2"
+  },
+  "dependencies": {
+    "immutable": "^4.0.0-rc.12"
   }
 }
