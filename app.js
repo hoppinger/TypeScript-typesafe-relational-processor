@@ -31,8 +31,6 @@ const Relation = (values) => ({
     values: () => values
 });
 const Entity = () => (values, relations) => ({
-    idAs: (idKey, idKeyNew) => null,
-    // Entity<Db>()(values.mapKeys(id => Rename<Record<Id>, idKey, idKeyNew>(idKey, idKeyNew, id)), relations),
     fieldAs: (key, keyNew) => Entity()(values.map(f => Rename(key, keyNew, f)), relations),
     select: (...keys) => Entity()(values.map(f => keys.reduce((a, e) => (Object.assign(Object.assign({}, a), { [e]: f[e] })), {})), relations),
     filter: (p) => Entity()(values.filter(p), relations),
@@ -41,15 +39,31 @@ const Entity = () => (values, relations) => ({
     },
     expandAs: (db, relation, as, q) => {
         const allLinks = relations[relation].values();
-        const allTargets = db.from(relation).values();
+        const otherEntity = db.from(relation);
+        const allTargets = otherEntity.values();
         const res = Entity()(values.map((fields, id) => {
             const links = allLinks.get(id) || immutable_1.Set();
-            const y = links.reduce((y, targetId) => y.set(targetId, allTargets.get(targetId)), immutable_1.Map());
-            return Object.assign(Object.assign({}, fields), Rename(relation, as, { [relation]: y }));
+            const targets = links.reduce((acc, targetId) => acc.set(targetId, allTargets.get(targetId)), immutable_1.Map());
+            return Object.assign(Object.assign({}, fields), Rename(relation, as, { [relation]: q(Entity()(targets, otherEntity.relations())).values() }));
         }), Without(relation, relations));
         return res;
     },
-    join: (db, relation, q) => null,
+    join: (db, relation, q) => {
+        const allLinks = relations[relation].values();
+        const otherEntity = db.from(relation);
+        const allTargets = otherEntity.values();
+        let mergedValues = immutable_1.Map();
+        values.forEach((sourceFields, sourceId) => {
+            const links = allLinks.get(sourceId) || immutable_1.Set();
+            const targets = links.reduce((acc, targetId) => acc.set(targetId, allTargets.get(targetId)), immutable_1.Map());
+            q(Entity()(targets, otherEntity.relations())).values().forEach((targetFields, targetId) => {
+                mergedValues = mergedValues.set(sourceId, Object.assign(Object.assign({}, sourceFields), targetFields));
+            });
+        });
+        const res = Entity()(mergedValues, relations);
+        return res;
+    },
+    relations: () => relations,
     values: () => values
 });
 const Database = (entities) => ({
@@ -108,22 +122,20 @@ const myEntities = {
 const db = Database(myEntities);
 const x0 = db.from("People").fieldAs("Name", "Nome").select("Nome").filter(p => p.Nome.startsWith("Giu"));
 const x1 = db.from("People").expand(db, "Addresses", a => a.select("Street", "Number"));
-//const x2 = db.from("People").join(db, "Addresses", a => a.select("Street", "Number")).join(db, "Cities", c => c.fieldAs("Name", "CityName").idAs("CityId", "UUIDOfCity"))
+const x2 = db.from("People").join(db, "Addresses", a => a.select("Street", "Number").join(db, "Cities", c => c.fieldAs("Name", "CityName")));
 const x3 = db.from("Cities").expand(db, "Addresses", a => a.expand(db, "People", p => p));
 const x4 = db.from("Cities").expand(db, "Addresses", a => a.expandAs(db, "People", "Inhabitants", p => p));
 const v0 = x0.values().toArray();
 const v1 = x1.values().toArray().map(x => (Object.assign(Object.assign({}, x[1]), { Addresses: x[1].Addresses.toArray().map(a => a[1]) })));
-//const v2 = x2.values().toArray()
+const v2 = x2.values().toArray().map(x => x[1]);
 const v3 = x3.values().toArray().map(x => (Object.assign(Object.assign({}, x[1]), { Addresses: x[1].Addresses.toArray().map(a => a[1]) })));
-//const v4 = x4.values().toArray()
+const v4 = x4.values().toArray().map(x => (Object.assign(Object.assign({}, x[1]), { Addresses: x[1].Addresses.toArray().map(a => a[1]) })));
 console.log("Done");
 /* todo:
  * actual implementation of methods
-    idAs
-    expandAs: <r extends keyof Relations, as extends string, Id2, Fields2, Relations2>(relation: r, as: as, q: Fun<Target<Relations[r]>, Entity<Id2, Fields2, Relations2, Db>>) :
-    join: <r extends keyof Relations, Id2, Fields2, Relations2>(relation: r, q: Fun<Target<Relations[r]>, Entity<Id2, Fields2, Relations2, Db>>) :
+    expand, expandAs, join do not use q as they should
  * define better constraints on Relations in Entity and expand, expandAs, and join?
- * odataParser to create a database
  * readme!!!
+ * odataParser to create a database
  */
 //# sourceMappingURL=app.js.map

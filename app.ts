@@ -46,7 +46,6 @@ interface Relation<Db, SourceName extends keyof Db, TargetName extends keyof Db,
 }
 
 interface Entity<Id extends  Object, Fields, Relations, Db> {
-  idAs: <idKey extends keyof Id, idKeyNew extends string>(idKey: idKey, idKeyNew: idKeyNew) => Entity<Without<Id, idKey> & { [x in idKeyNew]: Id[idKey] }, Fields, Relations, Db>
   fieldAs: <k extends keyof Fields, kNew extends string>(key: k, keyNew:kNew) => Entity<Id, Without<Fields, k> & { [x in kNew]:Fields[k] }, Relations, Db>
   select: <k extends keyof Fields>(...keys: k[]) => Entity<Id, Pick<Fields, k>, Relations, Db>
   filter: (p: (fields:Fields, id:Record<Id>) => boolean) => Entity<Id, Fields, Relations, Db>
@@ -55,7 +54,8 @@ interface Entity<Id extends  Object, Fields, Relations, Db> {
   expandAs: <r extends keyof Relations & string, as extends string, Id2, Fields2, Relations2>(db: Database<Db>, relation: r, as:as, q: Fun<Target<Relations[r]>, Entity<Id2, Fields2, Relations2, Db>>) =>
       Entity<Id, Fields & { [x in as]: Map<Id2, Fields2> }, Without<Relations, r>, Db>
   join: <r extends keyof Relations, Id2, Fields2, Relations2>(db: Database<Db>, relation: r, q: Fun<Target<Relations[r]>, Entity<Id2, Fields2, Relations2, Db>>) =>
-      Entity<Id & Id2, Fields & Fields2, Relations & Relations2, Db>
+      Entity<Id, Fields & Fields2, Relations, Db>
+  relations: () => Relations
   values: () => Map<Record<Id>, Fields>
 }
 
@@ -80,10 +80,6 @@ const Relation = <Db, SourceName extends keyof Db, TargetName extends keyof Db, 
 })
 
 const Entity = <Db>() => <Id, Fields, Relations>(values:Map<Record<Id>, Fields>, relations: Relations): Entity<Id, Fields, Relations, Db> => ({
-  idAs: <idKey extends keyof Id, idKeyNew extends string>(idKey: idKey, idKeyNew: idKeyNew):
-    Entity<Without<Id, idKey> & { [x in idKeyNew]: Id[idKey] }, Fields, Relations, Db> =>
-    null!,
-    // Entity<Db>()(values.mapKeys(id => Rename<Record<Id>, idKey, idKeyNew>(idKey, idKeyNew, id)), relations),
   fieldAs: <k extends keyof Fields, kNew extends string>(key: k, keyNew: kNew):
     Entity<Id, Without<Fields, k> & { [x in kNew]: Fields[k] }, Relations, Db> =>
     Entity<Db>()(values.map(f => Rename<Fields, k, kNew>(key, keyNew, f)), relations),
@@ -98,25 +94,37 @@ const Entity = <Db>() => <Id, Fields, Relations>(values:Map<Record<Id>, Fields>,
   expandAs: <r extends keyof Relations & string, as extends string, Id2, Fields2, Relations2>(db: Database<Db>, relation: r, as: as, q: Fun<Target<Relations[r]>, Entity<Id2, Fields2, Relations2, Db>>) :
     Entity<Id, Fields & { [x in as]: Map<Id2, Fields2> }, Without<Relations, r>, Db> => {
     const allLinks = (relations[relation] as any).values()
-    const allTargets = (db.from(relation as any) as any).values()
+    const otherEntity = (db.from(relation as any) as any)
+    const allTargets = otherEntity.values()
     const res = Entity<Db>()(values.map((fields, id) => {
       const links = allLinks.get(id) || Set()
-      const y = links.reduce((y: any, targetId: any) => y.set(targetId, allTargets.get(targetId)), Map())
-      return {...fields, ...Rename(relation, as, { [relation]: y })}
+      const targets = links.reduce((acc: any, targetId: any) => acc.set(targetId, allTargets.get(targetId)), Map())
+      return {
+        ...fields,
+        ...Rename(relation, as,
+          { [relation]: q(Entity<Db>()(targets, otherEntity.relations()) as any).values() as any })
+      }
     }), Without(relation, relations))
     return res
   },
   join: <r extends keyof Relations, Id2, Fields2, Relations2>(db: Database<Db>, relation: r, q: Fun<Target<Relations[r]>, Entity<Id2, Fields2, Relations2, Db>>) :
-    Entity<Id & Id2, Fields & Fields2, Relations & Relations2, Db> => {
-    //const allLinks = (relations[relation] as any).values()
-    //const allTargets = (db.from(relation as any) as any).values()
-    //const res = Entity<Db>()(values.map((fields, id) => {
-    //  const links = allLinks.get(id) || Set()
-    //  const y = links.reduce((y: any, targetId: any) => y.set(targetId, allTargets.get(targetId)), Map())
-    //  return { ...fields, ...Rename(relation, as, { [relation]: y }) }
-    //}), Without(relation, relations))
-    return null!
+    Entity<Id, Fields & Fields2, Relations, Db> => {
+    const allLinks = (relations[relation] as any).values()
+    const otherEntity = (db.from(relation as any) as any)
+    const allTargets = otherEntity.values()
+    let mergedValues = Map<Record<Id>, Fields & Fields2>()
+    values.forEach((sourceFields, sourceId) => {
+      const links = allLinks.get(sourceId) || Set()
+      const targets = links.reduce((acc: any, targetId: any) => acc.set(targetId, allTargets.get(targetId)), Map())
+      q(Entity<Db>()(targets, otherEntity.relations()) as any).values().forEach((targetFields: any, targetId: any) => {
+        mergedValues = mergedValues.set(sourceId,
+          { ...sourceFields, ...targetFields })
+      })
+    })
+    const res = Entity<Db>()(mergedValues, relations)
+    return res
   },
+  relations: (): Relations => relations,
   values: () : Map<Record<Id>, Fields> => values
 })
 
@@ -144,7 +152,7 @@ interface City {
 
 interface MyEntities {
   People: Entity<{ PersonId: number }, Person, {
-    Addresses: Relation<MyEntities, "People", "Addresses", "1-1">
+    Addresses: Relation<MyEntities, "People", "Addresses", "N-1">
   }, MyEntities>
   Addresses: Entity<{ AddressId: number }, Address, {
     Cities: Relation<MyEntities, "Addresses", "Cities", "N-1">,
@@ -222,23 +230,20 @@ const myEntities: MyEntities = {
 const db: Database<MyEntities> = Database(myEntities)
 const x0 = db.from("People").fieldAs("Name", "Nome").select("Nome").filter(p => p.Nome.startsWith("Giu"))
 const x1 = db.from("People").expand(db, "Addresses", a => a.select("Street", "Number"))
-//const x2 = db.from("People").join(db, "Addresses", a => a.select("Street", "Number")).join(db, "Cities", c => c.fieldAs("Name", "CityName").idAs("CityId", "UUIDOfCity"))
+const x2 = db.from("People").join(db, "Addresses", a => a.select("Street", "Number").join(db, "Cities", c => c.fieldAs("Name", "CityName")))
 const x3 = db.from("Cities").expand(db, "Addresses", a => a.expand(db, "People", p => p))
 const x4 = db.from("Cities").expand(db, "Addresses", a => a.expandAs(db, "People", "Inhabitants", p => p))
 
 const v0 = x0.values().toArray()
 const v1 = x1.values().toArray().map(x => ({ ...x[1], Addresses: x[1].Addresses.toArray().map(a => a[1]) }))
-//const v2 = x2.values().toArray()
+const v2 = x2.values().toArray().map(x => x[1])
 const v3 = x3.values().toArray().map(x => ({ ...x[1], Addresses: x[1].Addresses.toArray().map(a => a[1]) }))
-//const v4 = x4.values().toArray()
+const v4 = x4.values().toArray().map(x => ({ ...x[1], Addresses: x[1].Addresses.toArray().map(a => a[1]) }))
 
 console.log("Done")
 
 /* todo:
- * actual implementation of methods
-    idAs
-    join: <r extends keyof Relations, Id2, Fields2, Relations2>(relation: r, q: Fun<Target<Relations[r]>, Entity<Id2, Fields2, Relations2, Db>>) :
  * define better constraints on Relations in Entity and expand, expandAs, and join?
- * odataParser to create a database
  * readme!!!
+ * odataParser to create a database
  */
