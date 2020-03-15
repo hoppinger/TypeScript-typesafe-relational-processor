@@ -5,8 +5,7 @@ export * from "./database"
 // test()
 
 /* todo:
- * npm package
  * article
- * odataParser to create a database
- * define better constraints on Relations in Entity and expand, expandAs, and join?
+ * odataParser to create a database (Wim)
+ * define better constraints on Relations in Entity and expand, expandAs, and join? (Wim/Francesco)
  */
