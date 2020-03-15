@@ -10,7 +10,7 @@ A fluent syntax helps discover the various operators.
 Download the package from `npm` with\:
 
 ```
-npm install XXX
+npm install ts-in-memory-database
 ```
 
 Import the package at the top of your TypeScript file\:

@@ -1,6 +1,6 @@
 {
   "name": "ts-in-memory-database",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Typesafe in-memory database",
   "main": "./out/app.js",
   "author": {
