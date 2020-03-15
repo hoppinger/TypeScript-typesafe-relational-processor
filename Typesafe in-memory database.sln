@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29519.87
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "Hierarchy processor", "Hierarchy processor.njsproj", "{9F7F5FEE-7107-4249-85A7-022BC39C499F}"
+Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "Typesafe in-memory database", "Typesafe in-memory database.njsproj", "{9F7F5FEE-7107-4249-85A7-022BC39C499F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

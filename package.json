@@ -1,10 +1,10 @@
 {
-  "name": "hierarchy-processor",
-  "version": "0.0.0",
-  "description": "Hierarchy processor",
-  "main": "app.js",
+  "name": "ts-in-memory-database",
+  "version": "0.9.0",
+  "description": "Typesafe in-memory database",
+  "main": "./out/app.js",
   "author": {
-    "name": ""
+    "name": "Dr. Giuseppe Maggiore"
   },
   "scripts": {
     "build": "tsc --build",
