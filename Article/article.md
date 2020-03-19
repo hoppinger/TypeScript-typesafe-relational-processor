@@ -4,7 +4,7 @@ _By Dr. Giuseppe Maggiore_
 
 In modern Single Page Application (SPA) development, we have a lot of data processing we need to perform locally. One of the biggest triggers for this article, is the following scenario\:
 
-> For an awesome [online food ordering platform](beren.nl), we receive the following data from a Graph API\: `Restaurants -> Products -> [Categories, Options]` (thus we get a list of restaurants, each with a list of products inside, and each product contains a list of categories it falls under, and the options available for that product). 
+> For an awesome [online food ordering platform](https://beren.nl), we receive the following data from a Graph API\: `Restaurants -> Products -> [Categories, Options]` (thus we get a list of restaurants, each with a list of products inside, and each product contains a list of categories it falls under, and the options available for that product). 
 > This appears to be the fastest query that the API supports, also because products are found in many categories (thus we get less duplicates!).
 > The React renderer needs to sort products by category, and we also don't care about the restaurants because we are fetching the data for a single restaurant anyway. We need to turn the result of the query around, so that it looks like this\: `Categories -> Products -> Options`.
 > And so, a tale of `Map`s, `Set`s, `flatMap`, etc. begins.
