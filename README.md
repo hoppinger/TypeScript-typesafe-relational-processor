@@ -57,7 +57,7 @@ interface MyEntities {
 }
 ```
 
-Create a database. You need to specify both entities and relationships. You could do this manually. It is a bit verbose, so check out the [full sample](./sample.ts). When you have all the data, you can instantiate `MyEntities`, and with it a database around it\:
+Create a database. You need to specify both entities and relationships. You could do this manually. It is a bit verbose, so check out the [full sample](./sample1.ts). When you have all the data, you can instantiate `MyEntities`, and with it a database around it\:
 
 ```ts
 const myEntities: MyEntities = {
