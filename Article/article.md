@@ -211,11 +211,11 @@ So far, you might have noticed that we are using a lot of strings in our structu
 
 Here are a few of pictures illustrating this\:
 
-![IntelliSense on fields][https://raw.githubusercontent.com/hoppinger/TypeScript-typesafe-relational-processor/master/Article/pics/FieldIntelliSense.png]
+![IntelliSense on fields](./pics/FieldIntelliSense.png)
 
-![Field validation][https://raw.githubusercontent.com/hoppinger/TypeScript-typesafe-relational-processor/master/Article/pics/FieldValidation.png]
+![Field validation](./pics/FieldValidation.png)
 
-![IntelliSense on lambda's][https://raw.githubusercontent.com/hoppinger/TypeScript-typesafe-relational-processor/master/Article/pics/LambdaIntellisense.png]
+![IntelliSense on lambda's](./pics/LambdaIntellisense.png)
 
 Notice that every sort of validation that could be performed, is performed. The IDE is able to give us advice (and the compiler will actually enforce it, so this is not just cosmetic!) on available fields, will disallow non\-existing fields, and will even compose the types of the (intermediate) results such as the fact that a field rename removes the original field and adds the new one.
 
